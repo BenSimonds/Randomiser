@@ -13,9 +13,6 @@ To install the add-on, you can either place the Randomiser_addon.py file in your
 Usage:
 ----------
 
-Tutorial Video:
---------------------
-
 Visit the following link for a video about how to use the script:
 https://www.youtube.com/watch?v=ys7Rh76jUN8
 
