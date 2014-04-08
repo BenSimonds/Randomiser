@@ -41,7 +41,7 @@ class RandomiserPanelObject(bpy.types.Panel):
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
-    bl_label = "Randomise"
+    bl_label = "Randomise Object Data"
     
     def draw(self, context):
         ob = bpy.context.active_object
@@ -75,7 +75,7 @@ class RandomiserPanelText(bpy.types.Panel):
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "data"
-    bl_label = "Randomise"
+    bl_label = "Randomise Text Data"
 
     @classmethod
     def poll(self, context):
