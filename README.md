@@ -5,8 +5,7 @@ For more about the add on, visit: http://bensimonds.com/2014/04/02/randomiser-ad
 
 Installation:
 ----------------
-
-To install the add-on, you can either place the Randomiser_addon.py file in your scripts/addons directory for blender manually, or use the "Install from File" option in blenders User Preferences - Addons menu, and select Randomiser.py from the file browser.
+To intall the add-on, download a zip of this repository from GitHub. You can then install the add-on simply by using the "Install from File" option in Blender's User Preferences > Add-On's menu. Alternatively, you can just create your own folder within Blender's add-ons folder, and place the __init__.py and Randomiser_addon.py python files inside.
 
 
 ----------
