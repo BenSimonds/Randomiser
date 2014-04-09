@@ -33,7 +33,7 @@ def get_iter(data, mode, shift): #"data might be an object or text datablock."
             frequency = randomise.noise_update_period
         elif mode == 'mask':
             frequency = randomise.noise_pick_period
-        integer = int(round(current_frame-offset)/frequency) + shift
+        integer = int(round(current_frame-offset+shift)/frequency)
         return integer
     if mode == 'noise2':
         integer = random.randint(1,100)
@@ -45,9 +45,9 @@ def get_iter(data, mode, shift): #"data might be an object or text datablock."
         integer = randomise.time
         update_method = randomise.update_method
     if update_method == "man":
-        return integer
+        return integer + shift
     elif update_method == "freq":
-        integer = int(round(current_frame-offset+shift)/frequency)
+        integer = int(round(current_frame-offset + shift)/frequency)
         if integer >= 0:
             return integer
         else:
@@ -64,6 +64,7 @@ def custom_rand(data, method, noisemode, shift, *args):
     #print(args)
     result = methodtocall(*args)
     return result
+
 
 
 # Operators:
@@ -195,6 +196,7 @@ class RandomiseTextData (bpy.types.Operator):
             else:
                 print("Hmm, something should have returned by now, return None so as to give you a useful error...")
                 return None             
+
 
     def addnoise(self, string, data):
         #noise info:
@@ -347,15 +349,30 @@ class RandomiseTextData (bpy.types.Operator):
             text_new = text_data[i % len(text_data)]
 
         elif generate_method == 'random':
-            #Remove current choice from text_source to make sure string changes:
-            #Dont remove if update method is manual.
-            if data.randomiser.update_method == 'freq':
-                if data.body in text_data:
-                    text_data = list(text_data)
-                    text_data.remove(data.body) #Only works for lists.
-                else:
-                    text_data = list(text_data)
-            text_new = custom_rand(data, "choice", 'update', 0, text_data)
+            previous = randomise.previous_choice
+            no_repeats = randomise.no_repeats
+            text_data = list(text_data)
+            if no_repeats:
+                #Cleaned list of choices 
+                list_clean = []
+                for x in text_data:
+                    if x not in list_clean:
+                        list_clean.append(x)
+                #Check there hasn't been an increment in i in the last frame:
+                i_last = get_iter(data, 'update', -1)
+                if i !=  i_last:
+                    #Update previous to current:
+                    previous = data.body
+                randomise.previous_choice = previous
+                #Now remove previous from list_clean:
+                if previous in list_clean:
+                    list_clean.remove(previous)
+                #Choose a new value:
+                print("Current iter: " + str(i) + " Previous iter: " + str(i_last) + " Previous:" + previous +  " List:" + str(list_clean))
+                text_new = custom_rand(data,'choice','update',0,list_clean)
+            else:
+                text_new = custom_rand(data,'choice','update',0,text_data)
+
 
         # Add noise to text_new:
         if randomise.use_noise:
@@ -435,7 +452,11 @@ class RandomiserTextProps (bpy.types.PropertyGroup):
         ])
     offset = bpy.props.IntProperty(name = "Offset")
     ticklength = bpy.props.IntProperty(name = "Scroll length", default = 10)
-    group_digits = bpy.props.BoolProperty(name = "Group Digits")
+    group_digits = bpy.props.BoolProperty(name = "Group Digits", default = False)
+
+    #Previous choice for random choice selections to avoid repeats:
+    previous_choice = bpy.props.StringProperty(name = "Previous Choice", description = "Stored value of previous randomiser character generated.")
+    no_repeats = bpy.props.BoolProperty(name = "Avoid Repeats", default = False)
     
     #Leader properties:
     leader = bpy.props.EnumProperty(name = "Leader",items = [

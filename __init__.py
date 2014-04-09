@@ -118,6 +118,9 @@ class RandomiserPanelText(bpy.types.Panel):
                 col.separator()
                 row = col.row()
                 row.prop(randomise, "generate_method")
+                if randomise.generate_method == 'random':
+                    row = col.row()
+                    row.prop(randomise, "no_repeats")
                 if randomise.generate_method == 'ticker':
                     row = col.row()
                     row.prop(randomise, "ticklength")
