@@ -137,7 +137,6 @@ class RandomiseCopySeed(bpy.types.Operator):
         return {'FINISHED'}
 
 
-
 class RandomiseObjectData (bpy.types.Operator):
     bl_idname = 'object.randomise_data'
     bl_label = "Randomise Object Data"
@@ -561,9 +560,6 @@ class RandomiserTextProps (bpy.types.PropertyGroup):
 
     noise_ignore_whitespace = bpy.props.BoolProperty(name = "Ignore WhiteSpace", default = True)
     
-
-
-
 # Handlers:
 @persistent
 def randomise_handler(dummy):

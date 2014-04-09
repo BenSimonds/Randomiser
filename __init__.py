@@ -21,7 +21,7 @@
 bl_info = {
     "name": "Randomiser",
     "author": "Ben Simonds",
-    "version": (0, 2),
+    "version": (0, 3),
     "blender": (2, 7, 0),
     "location": "Properties > Object Data > Randomise",
     "description": "Tools for randomising and animating text data (and some limited object data). Website: http://bensimonds.com/2014/04/02/randomiser-add-on/",
