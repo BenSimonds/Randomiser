@@ -217,6 +217,8 @@ def register():
     #Operators:
     bpy.utils.register_class(RandomiseTextData)
     bpy.utils.register_class(RandomiseObjectData)
+    bpy.utils.register_class(RandomiseSpreadSeeds)
+    bpy.utils.register_class(RandomiseCopySeed)
 
     #UI:
     bpy.utils.register_class(RandomiserPanelObject)
@@ -234,6 +236,8 @@ def unregister():
     #Operators:
     bpy.utils.unregister_class(RandomiseTextData)
     bpy.utils.unregister_class(RandomiseObjectData)
+    bpy.utils.unregister_class(RandomiseSpreadSeeds)
+    bpy.utils.unregister_class(RandomiseCopySeed)
 
     #UI:
     bpy.utils.unregister_class(RandomiserPanelObject)

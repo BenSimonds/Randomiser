@@ -68,9 +68,79 @@ def custom_rand(data, method, noisemode, shift, *args):
 
 
 # Operators:
+
+class RandomiseSpreadSeeds(bpy.types.Operator):
+    bl_idname = 'object.randomise_spread_seeds'
+    bl_label = "Spread Randomiser Seeds"
+    text = bpy.props.BoolProperty(name  = "Text", default = False)
+
+    @classmethod
+    def poll(cls,context):
+        return context.object is not None
+
+    def invoke(self,context,event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+    def execute(self, context):
+        objects = bpy.context.selected_objects
+        count = 0
+        for ob in objects:
+            if self.text:
+                if ob.type == 'FONT':
+                    try:
+                        ob.data.randomiser.seed = count
+                    except AttributeError:
+                        print("Couldn't find a seed value for object: " + ob.name)
+                        pass
+            else:
+                try:
+                    ob.randomiser.seed = count
+                except AttributeError:
+                    print("Couldn't find a seed value for object: " + ob.name)
+                    pass
+            count += 1000
+        return {'FINISHED'}
+
+
+class RandomiseCopySeed(bpy.types.Operator):
+    bl_idname = 'object.randomise_copy_seed'
+    bl_label = "Copy Randomiser Seed from Active"
+    text = bpy.props.BoolProperty(name = "Text", default = False)
+
+    @classmethod
+    def poll(cls,context):
+        return context.object is not None
+
+    def invoke(self,context,event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+    def execute(self, context):
+        objects = bpy.context.selected_objects
+        active = bpy.context.active_object
+
+        for ob in objects:
+            if self.text:
+                if ob.type == 'FONT':
+                    try:
+                        ob.data.randomiser.seed = active.data.randomiser.seed
+                    except AttributeError:
+                        print("Couldn't find a seed value for object: " + ob.name +  " or: " + active.name)
+                        pass
+            else:
+                try:
+                    ob.randomiser.seed = active.randomiser.seed
+                except AttributeError:
+                    ("Couldn't find a seed value for object: " + ob.name  + " or: " + active.name)
+                    pass
+        return {'FINISHED'}
+
+
+
 class RandomiseObjectData (bpy.types.Operator):
     bl_idname = 'object.randomise_data'
-    bl_label = "Randomises an objects object data."
+    bl_label = "Randomise Object Data"
     object_string = bpy.props.StringProperty()
 
     def randomise_data(self, object):
@@ -373,7 +443,6 @@ class RandomiseTextData (bpy.types.Operator):
             else:
                 text_new = custom_rand(data,'choice','update',0,text_data)
 
-
         # Add noise to text_new:
         if randomise.use_noise:
             text_new = self.addnoise(text_new, data)
@@ -411,6 +480,7 @@ class RandomiseTextData (bpy.types.Operator):
 # Object Properties:
 class RandomiserObjectProps (bpy.types.PropertyGroup):
     use_randomise = bpy.props.BoolProperty(name = "Randomise")
+    seed = bpy.props.IntProperty(name = "Seed", default  = 0)
     source_group = bpy.props.StringProperty(name = "Group", description = "Name of the Group to use for Randomise.")
     generate_method = bpy.props.EnumProperty(name = "Generate Method", items = [("ordered","Ordered","ordered"),("random","Random","random")])
     frequency = bpy.props.FloatProperty(name = "Frames per update", default = 1.0, min=0.01)
