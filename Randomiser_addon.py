@@ -59,7 +59,7 @@ def custom_rand(data, method, noisemode, shift, *args):
     #   object: Input data to operate on: either object or text data.
     #   method: Method in random to call (see docs for random)
     #   *args: required args for the method chosen, given as a list []
-    x = Random(get_iter(data, noisemode, shift))
+    x = Random(get_iter(data, noisemode, shift) + data.randomiser.seed)
     methodtocall = getattr(x,method)
     #print(args)
     result = methodtocall(*args)
@@ -368,7 +368,7 @@ class RandomiseTextData (bpy.types.Operator):
                 if previous in list_clean:
                     list_clean.remove(previous)
                 #Choose a new value:
-                print("Current iter: " + str(i) + " Previous iter: " + str(i_last) + " Previous:" + previous +  " List:" + str(list_clean))
+                #print("Current iter: " + str(i) + " Previous iter: " + str(i_last) + " Previous:" + previous +  " List:" + str(list_clean))
                 text_new = custom_rand(data,'choice','update',0,list_clean)
             else:
                 text_new = custom_rand(data,'choice','update',0,text_data)
@@ -420,7 +420,7 @@ class RandomiserObjectProps (bpy.types.PropertyGroup):
 
 class RandomiserTextProps (bpy.types.PropertyGroup):
     use_randomise = bpy.props.BoolProperty(name = "Randomise")
-    
+    seed = bpy.props.IntProperty(name = "Seed", default  = 0)
     # Randomise Properties:
 
     textsource = bpy.props.EnumProperty(name = "Text Source", items = [

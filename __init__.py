@@ -95,6 +95,7 @@ class RandomiserPanelText(bpy.types.Panel):
             
             
             if randomise.use_randomise:
+                row.prop(randomise, "seed")
                 layout = layout.box()
                 row = layout.row()
                 # draw layout for randomise method: freq/man:
