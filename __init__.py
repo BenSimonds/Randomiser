@@ -51,25 +51,30 @@ class RandomiserPanelObject(bpy.types.Panel):
         row = layout.row()
         row.prop(randomise, "use_randomise")
         if randomise.use_randomise:
-            # draw layout for randomise method: freq/man:
-            row = layout.row()
-            row.prop(randomise, "update_method")
-            row = layout.row()
+            row.prop(randomise, "seed")
+            #Update Method Props:
+            box = layout.box()
+            row = box.row()
             row.prop(randomise, "offset")
-            
-            if randomise.update_method == "man":
-                row = layout.row()
-                row.prop(randomise, "time")
-            if randomise.update_method == "freq":
-                row = layout.row()
-                row.prop(randomise, "frequency")
-        
-            layout.separator()
 
-            row = layout.row()
+            row = box.row()
+            row.prop(randomise, 'update_method')
+            row = box.row()
+            if randomise.update_method == 'man':
+                row.prop(randomise, "time")
+            elif randomise.update_method == 'freq':
+                row.prop(randomise, 'period')
+
+            #Generate Method Props:
+            box.separator()
+            row = box.row()
             row.prop(randomise, "generate_method")
-            row = layout.row()
-            row.prop(randomise, "source_group")    
+            row = box.row()
+            row.prop(randomise, "source_group")
+            if randomise.generate_method == 'random':
+                row = box.row()
+                row.alignment = 'RIGHT'
+                row.prop(randomise, "no_repeats")    
 
 class RandomiserPanelText(bpy.types.Panel):
     bl_space_type = "PROPERTIES"
@@ -93,28 +98,21 @@ class RandomiserPanelText(bpy.types.Panel):
             row = layout.row()
             row.prop(randomise, "use_randomise")
             
-            
             if randomise.use_randomise:
                 row.prop(randomise, "seed")
-                layout = layout.box()
-                row = layout.row()
-                # draw layout for randomise method: freq/man:
-                col = row.column()
-                row = col.row()
+                #Update Method Props:
+                box = layout.box()
+                row = box.row()
                 row.prop(randomise, "update_method")
-                row = col.row()
+                row = box.row()
                 row.prop(randomise, "offset")
-                
-                if randomise.update_method == "man":
-                    row = col.row()
+                if randomise.update_method == 'man':
                     row.prop(randomise, "time")
-                if randomise.update_method == "freq":
-                    row = col.row()
-                    row.prop(randomise, "frequency")
-            
-                
+                elif randomise.update_method == 'freq':
+                    row.prop(randomise, "period")
 
-                row = layout.row()
+                #Generate Method Properties:
+                row = box.row()
                 col = row.column()
                 col.separator()
                 row = col.row()
@@ -136,29 +134,28 @@ class RandomiserPanelText(bpy.types.Panel):
                     row.label(text = "Source:")
 
                     if randomise.generate_method == "grow":
-                        layout.prop(randomise, "textdata")
+                        row = col.row()
+                        row.prop(randomise, "textdata")
                         #Leader:
-                        row = layout.row()
+                        row = col.row()
                         row.prop(randomise, "leader")
                         if randomise.leader == 'flash':
-                            row = layout.row()
+                            row = box.row()
                             row.prop(randomise, "leader_period")
-                        #elif randomise.leader == "random":
-                        #    layout.prop(randomise, "noise_source")
 
                     elif randomise.generate_method == "ticker":
-                        row = layout.row()
+                        row = box.row()
                         row.prop(randomise, "textdata")
                     
                     else:             
                         if randomise.textsource in ["alphanumeric","characters"]:
-                            layout.prop(randomise, "textsource")
-                            layout.prop(randomise, "caps")
+                            box.prop(randomise, "textsource")
+                            box.prop(randomise, "caps")
                         if randomise.textsource  in ["binary", "digits"]:
-                            layout.prop(randomise, "textsource")
+                            box.prop(randomise, "textsource")
                         if randomise.textsource in ["tbchars","tblines"]:
-                            layout.prop(randomise, "textsource")
-                            layout.prop(randomise, "textdata")
+                            box.prop(randomise, "textsource")
+                            box.prop(randomise, "textdata")
 
                 layout = self.layout
                 layout.separator()
@@ -169,42 +166,47 @@ class RandomiserPanelText(bpy.types.Panel):
                 row.prop(randomise, "use_noise")
 
                 if randomise.use_noise or randomise.leader == 'random':
-                    layout = layout.box()
+                    box = layout.box()
 
-                if randomise.use_noise:
-                    row = layout.row()
-                    row.prop(randomise, "noise_update_independent")
-                    if randomise.noise_update_independent:
-                        row.prop(randomise, "noise_update_period")
+                    if randomise.use_noise:
+                        row = box.row()
+                        row.prop(randomise, "noise_update_method")
+                        if randomise.noise_update_method == 'man':
+                            row.prop(randomise, "noise_time")
+                        elif randomise.noise_update_method == 'freq':
+                            row.prop(randomise, "noise_period")
 
-                    row = layout.row()
-                    row.prop(randomise, "noise_method")
-                    if randomise.noise_method == "mask":
-                        row = layout.row()
-                        row.prop(randomise, "noise_mask")
-                        row = layout.row()
-                    else:
-                        row = layout.row()
-                        row.prop(randomise, "noise_threshold")
+                        row = box.row()
+                        row.prop(randomise, "noise_method")
+                        if randomise.noise_method == "mask":
+                            row = box.row()
+                            row.prop(randomise, "noise_mask")
+                            row = box.row()
+                        else:
+                            row = box.row()
+                            row.prop(randomise, "noise_threshold")
 
-                        row = layout.row()
-                        row.prop(randomise, "noise_pick_independent")
-                        if randomise.noise_pick_independent:
-                            row.prop(randomise, "noise_pick_period")
-                    row = layout.row()
-                    row.prop(randomise, "noise_ignore_whitespace")
-                        
-                        
+                            row = box.row()
+                            row.prop(randomise, "noise_mask_update_method")
+                            if randomise.noise_mask_update_method == 'man':
+                                row.prop(randomise, "noise_mask_time")
+                            elif randomise.noise_mask_update_method == 'freq':
+                                row.prop(randomise, "noise_mask_period")
+                        row = box.row()
+                        row.alignment = 'RIGHT'
+                        row.prop(randomise, "noise_ignore_whitespace")
+                            
+                            
                     #Noise source for both noise and leader:
-                if randomise.use_noise or randomise.leader == 'random':
-                    row = layout.row()
-                    row.prop(randomise, "noise_source")
-                    if randomise.noise_source in ['characters','alphanumeric']:
-                        row = layout.row()
-                        row.prop(randomise, "caps")
-                    elif randomise.noise_source == 'tbchars':
-                        row = layout.row()
-                        row.prop(randomise, 'noise_textdata')
+                    if randomise.use_noise or randomise.leader == 'random':
+                        row = box.row()
+                        row.prop(randomise, "noise_source")
+                        if randomise.noise_source in ['characters','alphanumeric']:
+                            row = box.row()
+                            row.prop(randomise, "caps")
+                        elif randomise.noise_source == 'tbchars':
+                            row = box.row()
+                            row.prop(randomise, 'noise_textdata')
 
 #Registration:
 def register():

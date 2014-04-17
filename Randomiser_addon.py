@@ -21,51 +21,196 @@ import bpy, mathutils, random, operator, string #locale no longer needed!
 from random import Random
 from bpy.app.handlers import persistent
 
+### Properties Classes:
+
+# Object Properties:
+class RandomiserObjectProps (bpy.types.PropertyGroup):
+    use_randomise = bpy.props.BoolProperty(name = "Randomise")
+    seed = bpy.props.IntProperty(name = "Seed", default  = 0)
+
+    #Update Method Properties:
+    update_method = bpy.props.EnumProperty(name = "Update Method", items = [
+        ("freq","Frequency","Automatic Based on frame numbers"),
+        ("man","Manual","Manual, based on a value that can be animated, driven, etc.")
+        ])
+    time = bpy.props.IntProperty(name = "Time")
+    offset = bpy.props.IntProperty(name = "Offset")
+    period = bpy.props.FloatProperty(name = "Frames per Update", default = 1.0, min = 0.01)
+
+    #Generate Method Properties:
+    generate_method = bpy.props.EnumProperty(name = "Generate Method", items = [("ordered","Ordered","ordered"),("random","Random","random")])
+    source_group = bpy.props.StringProperty(name = "Group", description = "Name of the Group to use for Randomise.")
+
+    #Previous choice for random choice selections to avoid repeats:
+    previous_choice = bpy.props.StringProperty(name = "Previous Choice", description = "Stored value of previous random object choice")
+    no_repeats = bpy.props.BoolProperty(name = "Avoid Repeats", default = False)
+    
+class RandomiserTextProps (bpy.types.PropertyGroup):
+    use_randomise = bpy.props.BoolProperty(name = "Randomise")
+    seed = bpy.props.IntProperty(name = "Seed", default  = 0)
+    
+    #Update Method props:
+    update_method = bpy.props.EnumProperty(name = "Update Method", items = [
+        ("freq","Frequency","Automatic Based on frame numbers"),
+        ("man","Manual","Manual, based on a value that can be animated, driven, etc.")
+        ])
+    offset = bpy.props.IntProperty(name = "Offset")
+    time = bpy.props.IntProperty(name = "Time")
+    period = bpy.props.FloatProperty(name = "Frames per Update", default = 1.0, min = 0.01)
+
+    #Generate Method Props:
+    generate_method = bpy.props.EnumProperty(name = "Generate Method", items = [
+        ("ordered","Pick Ordered","ordered"),
+        ("random","Pick Random","random"),
+        ("grow","Typewriter","Grow sentence letter by letter."),
+        ("ticker","Scrolling Text","Scrolling Text"),
+        ("numeric", "Counting", "Count up or countdown."),
+        ])
+    textsource = bpy.props.EnumProperty(name = "Text Source", items = [
+        ("binary","Binary","binary digits"),
+        ("digits","Digits","random digits"),
+        ("characters","Characters","random characters"),
+        ("alphanumeric","Alphanumeric","random letters"),
+        ("tblines","Text File, Lines","Random lines from a text block."),
+        ("tbchars","Text File, Characters","Random characters from a text block.")
+        ])
+    caps = bpy.props.EnumProperty(name = "Case", items = [
+        ("lc","Lowercase","lowercase"),
+        ("uc","Uppercase","uppercase"),
+        ("ac","Both","both")
+        ])
+    textdata = bpy.props.StringProperty(name = "Text Datablock", description = "Name of Text datablock to use.")
+    
+    #Ticker Properties
+    ticklength = bpy.props.IntProperty(name = "Scroll length", default = 10)
+    group_digits = bpy.props.BoolProperty(name = "Group Digits", default = False)
+
+    #Previous choice for random choice selections to avoid repeats:
+    previous_choice = bpy.props.StringProperty(name = "Previous Choice", description = "Stored value of previous randomiser character generated.")
+    no_repeats = bpy.props.BoolProperty(name = "Avoid Repeats", default = False)
+    
+    #Leader Properties:
+    leader = bpy.props.EnumProperty(name = "Leader",items = [
+        ("none","None","none"),
+        ("random","Noise","Taken from noise source."),
+        ("underscore","Underscore","underscore"),
+        ("flash","Underscore Flash","flash")
+        ])
+    leader_period = bpy.props.IntProperty(name = "Leader Period", default = 25)
+
+    # Noise Properties:
+    use_noise = bpy.props.BoolProperty(name = "Noise")
+
+    #Update Properties:
+    noise_update_method = bpy.props.EnumProperty(name = "Noise Update Method", items = [
+        ('copy',"Automatic",'Updates at the same rate as the overall string'),
+        ('man',"Manual",'Updates based on a value that can be animated.'),
+        ('freq',"Frequency",'Updates every x number of frames.')
+        ])
+    noise_mask_update_method = bpy.props.EnumProperty(name = "Mask Update Method", items = [
+        ('copy',"Automatic",'Updates at the same rate as the overall string'),
+        ('man',"Manual",'Updates based on a value that can be animated.'),
+        ('freq',"Frequency",'Updates every x number of frames.')
+        ])
+    noise_time  = bpy.props.IntProperty(name = "Time", default = 0)
+    noise_period = bpy.props.FloatProperty(name = "Frames per Update", default = 1.0, min = 0.01)
+    noise_mask_time  = bpy.props.IntProperty(name = "Time", default = 0)
+    noise_mask_period = bpy.props.FloatProperty(name = "Frames per Update",default = 1.0, min = 0.01)
+
+    noise_threshold = bpy.props.FloatProperty(name = "Noise Threshold", min = 0.0, max = 1.0)
+    noise_mask = bpy.props.StringProperty(name = "Mask (comma delimited)")
+
+    #Generate Properties:
+    noise_method = bpy.props.EnumProperty(name = "Noise Generate Method", items = [
+        ("mask","Mask","mask"),
+        ("random","Random","random")
+        ])
+    noise_source = bpy.props.EnumProperty(name = "Noise Source", items = [
+        ("digits","Digits","random digits"),
+        ("characters","Characters","random letters"),
+        ("alphanumeric","Alphanumeric","random letters and numbers"),
+        ("binary", "Binary", "Zeroes and Ones"),
+        ("tbchars", "Text Block, Characters", "Random characters from a text block.")
+        ])
+
+    noise_textdata = bpy.props.StringProperty(name = "Text Datablock", description = "Name of Text datablock to use for Noise.")
+    noise_ignore_whitespace = bpy.props.BoolProperty(name = "Ignore WhiteSpace", default = True)
+
+
 # Functions:
 
-def get_iter(data, mode, shift): #"data might be an object or text datablock."
-    #Mode is a string in ["update", "noise1", "noise2" "mask"]
-    current_frame = bpy.context.scene.frame_current
-    if mode in ['noise1', 'mask']: #i.e. for getting noise back rather than iter:
-        randomise = data.randomiser
-        offset = randomise.offset
-        if mode == 'noise1':
-            frequency = randomise.noise_update_period
-        elif mode == 'mask':
-            frequency = randomise.noise_pick_period
-        integer = int(round(current_frame-offset+shift)/frequency)
-        return integer
-    if mode == 'noise2':
-        integer = random.randint(1,100)
-        return integer
-    else:
-        randomise = data.randomiser
-        offset = randomise.offset
-        frequency = randomise.frequency
-        integer = randomise.time
-        update_method = randomise.update_method
-    if update_method == "man":
-        return integer + shift
-    elif update_method == "freq":
-        integer = int(round(current_frame-offset + shift)/frequency)
-        if integer >= 0:
-            return integer
-        else:
-            return 0
+def check_fcurve(data, frame, prop):
+    if data.animation_data:
+        ad = data.animation_data
+        if ad.action:
+            ac = ad.action
+            curves = ac.fcurves
+            for curve in curves:
+                if curve.data_path == "randomiser." + prop:
+                    return curve.evaluate(frame)
+    return None
 
-def custom_rand(data, method, noisemode, shift, *args): 
+def check_for_update(data, frame, update_method, prop):
+    randomise = data.randomiser
+    if update_method == 'man':
+        #Check that the prop value is different from the previous frame:
+        prop_current = randomise.get(prop)
+        prop_old = check_fcurve(data, frame - 1, prop)
+        return not prop_current == prop_old
+    elif update_method == 'freq':
+        #Check that i is different from the previous frame:
+        i_current = get_iter(data, 'update', 0, frame)
+        i_old = get_iter(data, 'update', -1, frame)
+        return not i_current == i_old
+
+def get_iter(data, mode, shift, frame): #New version of get iter that doesn't use frame_current, which is messy.
+    # Mode should be one of the following:
+    # "update" : Returns iter based on the time property.
+    # "noise1" : Returns a random iter with time and noise_update_period as a seed.
+    # "noise2" : Returns a random iter, no seed.
+    # "mask"   : Returns a random iter with time and noise_pick_period as a seed. 
+    randomise = data.randomiser
+    integer = 0
+    offset = randomise.offset
+
+    if mode == "update":
+        if randomise.update_method == 'man':
+            integer = randomise.time - randomise.offset + shift
+        elif randomise.update_method == 'freq':
+            period = randomise.period
+            integer = int(round((frame - offset + shift) / period))
+    elif mode == 'noise1':
+        if randomise.noise_update_method == 'copy':
+            integer = get_iter(data,'upate',shift,frame)
+        elif randomise.noise_update_method == 'man':
+            integer = randomise.noise_time - randomise.offset + shift
+        elif randomise.noise_update_method == 'freq':
+            period = randomise.noise_period
+            integer = int(round((frame - offset + shift) / period))
+    elif mode == 'noise2':
+        integer = random.randint(1000)
+    elif mode == "mask":
+        if randomise.noise_mask_update_method == 'copy':
+            integer = get_iter(data,'update',shift,frame)
+        elif randomise.noise_mask_update_method == 'man':
+            integer = randomise.noise_mask_time - randomise.offset + shift
+        elif randomise.noise_mask_update_method == 'freq':
+            period = randomise.noise_mask_period
+            integer = int(round((frame - offset + shift) / period))
+    return integer
+
+
+def custom_rand(data, method, noisemode, shift, frame, *args): 
     # Custom randomise method that uses current frame as seed and initialises each frame to stay predictable.
     # Args:
     #   object: Input data to operate on: either object or text data.
     #   method: Method in random to call (see docs for random)
     #   *args: required args for the method chosen, given as a list []
-    x = Random(get_iter(data, noisemode, shift) + data.randomiser.seed)
+    x = Random(get_iter(data, noisemode, shift, frame) + data.randomiser.seed)
     methodtocall = getattr(x,method)
     #print(args)
     result = methodtocall(*args)
     return result
-
-
 
 # Operators:
 
@@ -102,6 +247,35 @@ class RandomiseSpreadSeeds(bpy.types.Operator):
             count += 1000
         return {'FINISHED'}
 
+class RandomiseCopySettings(bpy.types.Operator):
+    bl_idname = 'object.randomise_copy_settings'
+    bl_label = 'Copy Randomiser Settings from Active'
+    text = bpy.props.BoolProperty(name = "Text", default = False)
+
+    @classmethod
+    def poll(cls,context):
+        return context.object is not None
+
+    def invoke(self,context,event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+    def execute(self, context):
+        for ob in objects:
+            if self.text:
+                if ob.type == 'FONT':
+                    try:
+                        ob.data.randomiser.seed = active.data.randomiser.seed
+                    except AttributeError:
+                        print("Couldn't find a seed value for object: " + ob.name +  " or: " + active.name)
+                        pass
+            else:
+                try:
+                    ob.randomiser.seed = active.randomiser.seed
+                except AttributeError:
+                    ("Couldn't find a seed value for object: " + ob.name  + " or: " + active.name)
+                    pass
+        return {'FINISHED'}
 
 class RandomiseCopySeed(bpy.types.Operator):
     bl_idname = 'object.randomise_copy_seed'
@@ -136,19 +310,17 @@ class RandomiseCopySeed(bpy.types.Operator):
                     pass
         return {'FINISHED'}
 
-
 class RandomiseObjectData (bpy.types.Operator):
     bl_idname = 'object.randomise_data'
     bl_label = "Randomise Object Data"
     object_string = bpy.props.StringProperty()
+    frame = bpy.props.IntProperty()
 
     def randomise_data(self, object):
         randomise = object.randomiser
-        frequency = randomise.frequency
         generate_method = randomise.generate_method
         group_name = randomise.source_group
         group = bpy.data.groups[group_name]
-        current_frame = bpy.context.scene.frame_current
 
         #Get data source and do sanity check:
         #print("Source Group name give is: " + group_name)
@@ -158,22 +330,29 @@ class RandomiseObjectData (bpy.types.Operator):
             return
         else:
             if generate_method == 'ordered':
-                object.data = data_source[get_iter(object, 'update', 0) % len(data_source)].data
+                object.data = data_source[get_iter(object, 'update', 0, self.frame) % len(data_source)].data
             elif generate_method == 'random':
-                #DON'T call choice if list length is zero. It causes ugly exceptions...
-                if len(data_source) ==0:
-                    print("Data source to choose from was length zero. Can't choose from empty set.")
-                    print("Data source:" + str(data_source))
+                previous = randomise.previous_choice #Name of previous choices object data.
+                no_repeats = randomise.no_repeats
+                if no_repeats:
+                    #Cleaned List of choices.
+                    list_clean = []
+                    for x in data_source:
+                        if x not in list_clean:
+                            list_clean.append(x)
+                    #Check if update is required.
+                    if check_for_update(object, self.frame, randomise.update_method, "time"):
+                        previous = object.data.name
+                        randomise.previous_choice = previous
+                    #Now remove previous from list_clean:
+                    #Check that none of the group members have previous as their object data and if so remove them too.
+                    for ob in list_clean:
+                        if ob.data.name == previous:
+                            list_clean.remove(ob)
+                    #Choose a new value:
+                    object.data = custom_rand(object, 'choice','update', 0, self.frame, list_clean).data
                 else:
-                    # If current data in list, ignore: - This buggers up frequency because it removes the current from the avaliable options even if it wasn't supposed to change anyway...
-                    #Check get_iter has changed from the previous frame?
-                    if randomise.update_method == 'freq':
-                        if get_iter(object, 'update', -1) != get_iter(object, 'update', 0): #Only do choice list and update if required!
-                            choice_list = [ob for ob in data_source if ob.data != object.data] #Remove current choice from data_source.
-                            object.data = custom_rand(object, "choice", 'update', 0, choice_list).data
-                    else:
-                        choice_list = [ob for ob in data_source if ob.data != object.data] #Remove current choice from data_source
-                        object.data =  custom_rand(object, "choice", 'update', 0, choice_list).data
+                    object.data = custom_rand(object, 'choice','update', 0, self.frame, data_source).data
             return
 
     def execute(self, context):
@@ -188,6 +367,7 @@ class RandomiseTextData (bpy.types.Operator):
     bl_idname = 'object.randomise_text'
     bl_label = 'Randomises an objects text data.'
     data_string = bpy.props.StringProperty()
+    frame = bpy.props.IntProperty()
 
     def get_textsource(self, source, generate_method, caps, text_block):
         text_data = ""
@@ -307,11 +487,11 @@ class RandomiseTextData (bpy.types.Operator):
                         if string[x] in ignore_list:
                             pass
                         else:
-                            if randomise.noise_update_independent:
-                                iter_noise = 'noise1'
-                            else:
+                            if randomise.noise_update_method == 'copy':
                                 iter_noise = 'update'
-                            text_working = string[0:x] + custom_rand(data, "choice", iter_noise, x*13, noise_data) + string[x+1:]
+                            else:
+                                iter_noise = 'noise1'
+                            text_working = string[0:x] + custom_rand(data, "choice", iter_noise, x*13, self.frame, noise_data) + string[x+1:]
                     except (KeyError, IndexError):
                         pass
                     string = text_working
@@ -322,11 +502,11 @@ class RandomiseTextData (bpy.types.Operator):
             #Create random noise at a certain percentage of indices.
             mask_length = int((threshold) * len(string))
             string_length = len(string)
-            if randomise.noise_pick_independent:
-                iter_noise = 'mask'
-            else:
+            if randomise.noise_mask_update_method == 'copy':
                 iter_noise = 'update'
-            noise_mask = custom_rand(data,"sample", iter_noise, 0, range(0,string_length),mask_length)
+            else:
+                iter_noise = 'mask'
+            noise_mask = custom_rand(data,"sample", iter_noise, 0, self.frame, range(0,string_length),mask_length)
 
             for x in noise_mask:
                 text_working = string
@@ -336,11 +516,11 @@ class RandomiseTextData (bpy.types.Operator):
                 if string[x] in ignore_list:
                     pass
                 else:
-                    if randomise.noise_update_independent:
-                        iter_noise = 'noise1'
-                    else:
+                    if randomise.noise_update_method  == 'copy':
                         iter_noise = 'update'
-                    text_working = string[0:x] + custom_rand(data,"choice", iter_noise, x*13, noise_data) + string[x+1:]    
+                    else:
+                        iter_noise = 'noise1'
+                    text_working = string[0:x] + custom_rand(data,"choice", iter_noise, x*13, self.frame, noise_data) + string[x+1:]    
                 string = text_working
 
         return string
@@ -349,8 +529,6 @@ class RandomiseTextData (bpy.types.Operator):
     def randomise_text(self, data):
         randomise = data.randomiser
         generate_method = randomise.generate_method
-        
-        frequency = randomise.frequency
         caps = randomise.caps
         text_new = ""
 
@@ -382,13 +560,11 @@ class RandomiseTextData (bpy.types.Operator):
         text_data = self.get_textsource(source, generate_method, caps, text_block)
         #print("Text Data for sampling:" + text_data)
         noise_data = self.get_textsource(randomise.noise_source, "random", "ac", text_block)
-        i = get_iter(data, 'update', 0)
+        i = get_iter(data, 'update', 0, self.frame)
 
         # Get a new string for the text:
-        current_frame = bpy.context.scene.frame_current
-
         if generate_method == 'grow':
-            if get_iter(data, 'update', 0) != 0:
+            if get_iter(data, 'update', 0, self.frame) != 0:
                 text_new = text_data[:i]
 
         elif generate_method == 'ticker':
@@ -427,20 +603,17 @@ class RandomiseTextData (bpy.types.Operator):
                 for x in text_data:
                     if x not in list_clean:
                         list_clean.append(x)
-                #Check there hasn't been an increment in i in the last frame:
-                i_last = get_iter(data, 'update', -1)
-                if i !=  i_last:
+                #Check if an update is needed:
+                if check_for_update(data, self.frame, randomise.update_method, "time"):
                     #Update previous to current:
                     previous = data.body
-                randomise.previous_choice = previous
+                    randomise.previous_choice = previous
                 #Now remove previous from list_clean:
                 if previous in list_clean:
                     list_clean.remove(previous)
-                #Choose a new value:
-                #print("Current iter: " + str(i) + " Previous iter: " + str(i_last) + " Previous:" + previous +  " List:" + str(list_clean))
-                text_new = custom_rand(data,'choice','update',0,list_clean)
+                text_new = custom_rand(data,'choice','update',0, self.frame, list_clean)
             else:
-                text_new = custom_rand(data,'choice','update',0,text_data)
+                text_new = custom_rand(data,'choice','update',0, self.frame, text_data)
 
         # Add noise to text_new:
         if randomise.use_noise:
@@ -451,13 +624,13 @@ class RandomiseTextData (bpy.types.Operator):
             leader = data.randomiser.leader
             leader_period = data.randomiser.leader_period
             if leader == "random":
-                text_new = text_new + custom_rand(data, "choice", 'update', 0, noise_data)
+                text_new = text_new + custom_rand(data, "choice", 'update', 0, self.frame, noise_data)
             elif leader == "underscore":
                 text_new  = text_new + "_"
             elif leader == 'flash':
                 flash = [" ", "_"]
-                flash_int = int(current_frame / leader_period) % 2
-                flash_choice = flash[flash_int] #Could be made more configurable... Done!
+                flash_int = int(i / leader_period) % 2
+                flash_choice = flash[flash_int]
                 text_new = text_new + flash_choice
 
         # Apply new string:
@@ -474,119 +647,92 @@ class RandomiseTextData (bpy.types.Operator):
         #    print("Couldnt find data :" + self.data_string)
         #    return{'FINISHED'}
 
-### Properties Classes:
-
-# Object Properties:
-class RandomiserObjectProps (bpy.types.PropertyGroup):
-    use_randomise = bpy.props.BoolProperty(name = "Randomise")
-    seed = bpy.props.IntProperty(name = "Seed", default  = 0)
-    source_group = bpy.props.StringProperty(name = "Group", description = "Name of the Group to use for Randomise.")
-    generate_method = bpy.props.EnumProperty(name = "Generate Method", items = [("ordered","Ordered","ordered"),("random","Random","random")])
-    frequency = bpy.props.FloatProperty(name = "Frames per update", default = 1.0, min=0.01)
-    update_method = bpy.props.EnumProperty(name = "Update Method", items = [("freq","Frequency","Automatic Based on frame numbers"),("man","Manual","Manual, based on a value that can be animated, driven, etc.")])
-    time = bpy.props.IntProperty(name = "Time")
-    offset = bpy.props.IntProperty(name = "Offset")
-
-class RandomiserTextProps (bpy.types.PropertyGroup):
-    use_randomise = bpy.props.BoolProperty(name = "Randomise")
-    seed = bpy.props.IntProperty(name = "Seed", default  = 0)
-    # Randomise Properties:
-
-    textsource = bpy.props.EnumProperty(name = "Text Source", items = [
-        ("binary","Binary","binary digits"),
-        ("digits","Digits","random digits"),
-        ("characters","Characters","random characters"),
-        ("alphanumeric","Alphanumeric","random letters"),
-        ("tblines","Text File, Lines","Random lines from a text block."),
-        ("tbchars","Text File, Characters","Random characters from a text block.")
-        ])
-    generate_method = bpy.props.EnumProperty(name = "Generate Method", items = [
-        ("ordered","Pick Ordered","ordered"),
-        ("random","Pick Random","random"),
-        ("grow","Typewriter","Grow sentence letter by letter."),
-        ("ticker","Scrolling Text","Scrolling Text"),
-        ("numeric", "Counting", "Count up or countdown."),
-        ])
-    caps = bpy.props.EnumProperty(name = "Case", items = [
-        ("lc","Lowercase","lowercase"),
-        ("uc","Uppercase","uppercase"),
-        ("ac","Both","both")
-        ])
-    textdata = bpy.props.StringProperty(name = "Text Datablock", description = "Name of Text datablock to use.")
-    frequency = bpy.props.FloatProperty(name = "Frames per Update", default = 1.0, min = 0.01 )
-    time = bpy.props.IntProperty(name = "Time")
-    update_method = bpy.props.EnumProperty(name = "Update Method", items = [
-        ("freq","Frequency","Automatic Based on frame number."),
-        ("man","Manual","Manual, based on a value that can be animated, driven, etc.")
-        ])
-    offset = bpy.props.IntProperty(name = "Offset")
-    ticklength = bpy.props.IntProperty(name = "Scroll length", default = 10)
-    group_digits = bpy.props.BoolProperty(name = "Group Digits", default = False)
-
-    #Previous choice for random choice selections to avoid repeats:
-    previous_choice = bpy.props.StringProperty(name = "Previous Choice", description = "Stored value of previous randomiser character generated.")
-    no_repeats = bpy.props.BoolProperty(name = "Avoid Repeats", default = False)
-    
-    #Leader properties:
-    leader = bpy.props.EnumProperty(name = "Leader",items = [
-        ("none","None","none"),
-        ("random","Noise","Taken from noise source."),
-        ("underscore","Underscore","underscore"),
-        ("flash","Underscore Flash","flash")
-        ])
-    leader_period = bpy.props.IntProperty(name = "Leader Period", default = 25)
-
-    # Noise Properties:
-    use_noise = bpy.props.BoolProperty(name = "Noise")
-    noise_mask = bpy.props.StringProperty(name = "Mask (comma delimited)")
-    noise_source = bpy.props.EnumProperty(name = "Noise Source", items = [
-        ("digits","Digits","random digits"),
-        ("characters","Characters","random letters"),
-        ("alphanumeric","Alphanumeric","random letters and numbers"),
-        ("binary", "Binary", "Zeroes and Ones"),
-        ("tbchars", "Text Block, Characters", "Random characters from a text block.")
-        ])
-    noise_textdata = bpy.props.StringProperty(name = "Text Datablock", description = "Name of Text datablock to use for Noise.")
-    noise_method = bpy.props.EnumProperty(name = "Noise Method", items = [
-        ("mask","Mask","mask"),
-        ("random","Random","random")
-        ])
-    noise_threshold = bpy.props.FloatProperty(name = "Noise Threshold", min = 0.0, max = 1.0)
-    #Options for updating noise indepenendently from the base string.
-    noise_pick_independent = bpy.props.BoolProperty(name = "Pick Noise Sites Independently", default = False)
-    noise_update_independent = bpy.props.BoolProperty(name = "Update Noise Independently", default = False)
-    noise_pick_period  = bpy.props.FloatProperty(name = "Frames per Update", default = 1.0, min = 0.01 )
-    noise_update_period  = bpy.props.FloatProperty(name = "Frames per Update", default = 1.0, min = 0.01 )
-
-    noise_ignore_whitespace = bpy.props.BoolProperty(name = "Ignore WhiteSpace", default = True)
-    
 # Handlers:
 @persistent
 def randomise_handler(dummy):
+    #Randomise Objects and Texts in Current Scene:
     # Randomise Objects
     to_randomise = []
-    for object in bpy.data.objects:
+    scene = bpy.context.scene
+    current_frame = bpy.context.scene.frame_current
+    for object in scene.objects:
         try:
             if object.randomiser.use_randomise == True:
                 try:
                     if object.randomiser.source_group in bpy.data.groups.keys():
-                        to_randomise.append(object)
+                        to_randomise.append((object, current_frame))
                 except (KeyError, AttributeError): #Key error for key not found. Attr Error for key not given.
                     print("ERROR:Group not found for object to pick random data from.")
                     pass
         except AttributeError:
             pass
-    for object in to_randomise:
-        bpy.ops.object.randomise_data(object_string = object.name)
 
-    # Randomise Text
+    for x in to_randomise:
+        object = x[0]
+        frame = x[1]
+        bpy.ops.object.randomise_data(object_string = object.name, frame = frame)
+
+    # Randomise Texts:
     to_randomise = []
-    for text in bpy.data.curves:
+    for text in [ob.data for ob in scene.objects if ob.type == 'FONT']:
         try:
             if text.randomiser.use_randomise == True:
-                to_randomise.append(text)
+                to_randomise.append((text,current_frame))
         except AttributeError:
             pass
-    for text in to_randomise:
-        bpy.ops.object.randomise_text(data_string = text.name)
+    
+    for x in to_randomise:
+        text = x[0]
+        frame = x[1]
+        bpy.ops.object.randomise_text(data_string = text.name, frame = frame)
+
+
+    #Randomise Objects and Texts in Sequencer Scenes:
+    if scene.render.use_sequencer:
+        #Randomise Objects:
+        to_randomise = []
+        try:
+            seqs = [seq for seq in bpy.context.scene.sequence_editor.sequences_all if seq.type == 'SCENE' and seq.frame_final_start <= current_frame < seq.frame_final_end and seq.scene != bpy.context.scene]
+            for seq in seqs:
+                frame_scene = current_frame - seq.frame_start + seq.scene.frame_start
+                for object in seq.scene.objects:
+                    try:
+                        if object.randomiser.use_randomise == True:
+                            try:
+                                if object.randomiser.source_group in bpy.data.groups.keys():
+                                    to_randomise.append((object, frame_scene))
+                            except (KeyError, AttributeError): #Key error for key not found. Attr Error for key not given.
+                                print("ERROR:Group not found for object to pick random data from.")
+                                pass
+                    except AttributeError:
+                        pass
+        except AttributeError:
+            pass
+
+        for x in to_randomise:
+            object = x[0]
+            frame = x[1]
+            bpy.ops.object.randomise_data(object_string = object.name, frame = frame)
+        
+        #Randomise Texts:
+        to_randomise = []
+        try:
+            current_frame = bpy.context.scene.frame_current
+            seqs = [seq for seq in bpy.context.scene.sequence_editor.sequences_all if seq.type == 'SCENE' and seq.frame_final_start <= current_frame < seq.frame_final_end  and seq.scene != bpy.context.scene]
+            for seq in seqs:
+                frame_scene = current_frame - seq.frame_start + seq.scene.frame_start
+                for text in [ob.data for ob in seq.scene.objects if ob.type == 'FONT']:
+                    try:
+                        if text.randomiser.use_randomise == True:
+                            to_randomise.append((text,frame_scene))
+                    except AttributeError:
+                        pass
+        except AttributeError:
+            pass
+
+        for x in to_randomise:
+            text = x[0]
+            frame = x[1]
+            bpy.ops.object.randomise_text(data_string = text.name, frame = frame)
+    
     return
