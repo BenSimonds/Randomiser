@@ -12,7 +12,7 @@ To intall the add-on, download a zip of this repository from GitHub. You can the
 Usage:
 ----------
 
-Visit the following link for a video about how to use the script (slightly out of date now but basically correct:
+Visit the following link for a video about how to use the script (slightly out of date now but basically correct):
 https://www.youtube.com/watch?v=ys7Rh76jUN8
 
 Mesh Objects:
