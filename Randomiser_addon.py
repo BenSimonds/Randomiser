@@ -65,6 +65,7 @@ class RandomiserTextProps (bpy.types.PropertyGroup):
         ("grow","Typewriter","Grow sentence letter by letter."),
         ("ticker","Scrolling Text","Scrolling Text"),
         ("numeric", "Counting", "Count up or countdown."),
+        ("clock", "Clock", "Gives a clock readout.")
         ])
     textsource = bpy.props.EnumProperty(name = "Text Source", items = [
         ("binary","Binary","binary digits"),
@@ -84,6 +85,11 @@ class RandomiserTextProps (bpy.types.PropertyGroup):
     #Ticker Properties
     ticklength = bpy.props.IntProperty(name = "Scroll length", default = 10)
     group_digits = bpy.props.BoolProperty(name = "Group Digits", default = False)
+
+    #Time Properties:
+    clock_minutes = bpy.props.IntProperty(name = "Minutes Offset", default = 0, min = 0, max = 59)
+    clock_hours = bpy.props.IntProperty(name = "Hours Offset", default = 0, min = 0, max = 23)
+    clock_24hr = bpy.props.BoolProperty(name = "24 Hour Clock", default = True)
 
     #Previous choice for random choice selections to avoid repeats:
     previous_choice = bpy.props.StringProperty(name = "Previous Choice", description = "Stored value of previous randomiser character generated.")
@@ -135,6 +141,7 @@ class RandomiserTextProps (bpy.types.PropertyGroup):
 
     noise_textdata = bpy.props.StringProperty(name = "Text Datablock", description = "Name of Text datablock to use for Noise.")
     noise_ignore_whitespace = bpy.props.BoolProperty(name = "Ignore WhiteSpace", default = True)
+    noise_ignore_custom = bpy.props.StringProperty(name = "Ignore Custom", description = "Whitelist of characters not to replace with noise.")
 
 
 # Functions:
@@ -211,6 +218,14 @@ def custom_rand(data, method, noisemode, shift, frame, *args):
     #print(args)
     result = methodtocall(*args)
     return result
+
+def time_to_clock(time):
+    #Takes a time in seconds and returns a clock readout in h:m:s.
+    m, s = divmod(time, 60)
+    h, m = divmod(m, 60) 
+    return h, m, s
+
+
 
 # Operators:
 
@@ -513,6 +528,7 @@ class RandomiseTextData (bpy.types.Operator):
                 ignore_list = ["\n", ""]
                 if ignore_whitespace:
                     ignore_list.append(" ")
+                ignore_list += randomise.noise_ignore_custom
                 if string[x] in ignore_list:
                     pass
                 else:
@@ -590,6 +606,16 @@ class RandomiseTextData (bpy.types.Operator):
                 text_new = str(i)
             #print("Text New:" + text_new)
 
+        elif generate_method == 'clock':
+            #Treat time as a number in seconds.
+            h, m, s = time_to_clock(i + (randomise.clock_minutes*60) + (randomise.clock_hours) * 3600)
+            if randomise.clock_24hr:
+                h = h % 24
+            else:
+                h = h % 12
+            string = str(h).zfill(2) + ":" + str(m).zfill(2) + ":" + str(s).zfill(2)
+            text_new = string
+
         elif generate_method == "ordered":
             text_new = text_data[i % len(text_data)]
 
@@ -655,12 +681,13 @@ def randomise_handler(dummy):
     to_randomise = []
     scene = bpy.context.scene
     current_frame = bpy.context.scene.frame_current
+    subframe = bpy.context.scene.frame_subframe
     for object in scene.objects:
         try:
             if object.randomiser.use_randomise == True:
                 try:
                     if object.randomiser.source_group in bpy.data.groups.keys():
-                        to_randomise.append((object, current_frame))
+                        to_randomise.append((object, current_frame + subframe))
                 except (KeyError, AttributeError): #Key error for key not found. Attr Error for key not given.
                     print("ERROR:Group not found for object to pick random data from.")
                     pass
@@ -677,7 +704,7 @@ def randomise_handler(dummy):
     for text in [ob.data for ob in scene.objects if ob.type == 'FONT']:
         try:
             if text.randomiser.use_randomise == True:
-                to_randomise.append((text,current_frame))
+                to_randomise.append((text,current_frame + subframe))
         except AttributeError:
             pass
     
@@ -694,7 +721,7 @@ def randomise_handler(dummy):
         try:
             seqs = [seq for seq in bpy.context.scene.sequence_editor.sequences_all if seq.type == 'SCENE' and seq.frame_final_start <= current_frame < seq.frame_final_end and seq.scene != bpy.context.scene]
             for seq in seqs:
-                frame_scene = current_frame - seq.frame_start + seq.scene.frame_start
+                frame_scene = current_frame - seq.frame_start + seq.scene.frame_start + subframe
                 for object in seq.scene.objects:
                     try:
                         if object.randomiser.use_randomise == True:
@@ -717,10 +744,9 @@ def randomise_handler(dummy):
         #Randomise Texts:
         to_randomise = []
         try:
-            current_frame = bpy.context.scene.frame_current
             seqs = [seq for seq in bpy.context.scene.sequence_editor.sequences_all if seq.type == 'SCENE' and seq.frame_final_start <= current_frame < seq.frame_final_end  and seq.scene != bpy.context.scene]
             for seq in seqs:
-                frame_scene = current_frame - seq.frame_start + seq.scene.frame_start
+                frame_scene = current_frame - seq.frame_start + seq.scene.frame_start + subframe
                 for text in [ob.data for ob in seq.scene.objects if ob.type == 'FONT']:
                     try:
                         if text.randomiser.use_randomise == True:

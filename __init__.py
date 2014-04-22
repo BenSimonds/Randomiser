@@ -120,14 +120,42 @@ class RandomiserPanelText(bpy.types.Panel):
                 if randomise.generate_method == 'random':
                     row = col.row()
                     row.prop(randomise, "no_repeats")
-                if randomise.generate_method == 'ticker':
+                elif randomise.generate_method == 'ticker':
                     row = col.row()
                     row.prop(randomise, "ticklength")
 
-                if randomise.generate_method == 'numeric':
+                elif randomise.generate_method == 'numeric':
                     row = col.row()
                     row.alignment = 'RIGHT'
                     row.prop(randomise, "group_digits")
+
+                elif randomise.generate_method == 'clock':
+                    row = col.row()
+                    row.prop(randomise, 'clock_hours')
+                    row.prop(randomise, 'clock_minutes')
+                    row = col.row()
+                    if randomise.clock_seconds:
+                        minsec = "Seconds"
+                    else:
+                        minsec = "Minutes"
+                    row.prop(randomise, 'clock_seconds', toggle = True, text = minsec)
+                    row.prop(randomise, 'clock_24hr')
+                    row = col.row()
+
+                    frame = bpy.context.scene.frame_current
+                    i = get_iter(text_data, 'update', 0, frame)
+                    if randomise.clock_seconds:
+                        x = 1
+                    else:
+                        x = 60
+                    time = (i*x) + (randomise.clock_minutes*60) + (randomise.clock_hours * 3600)
+                    h, m, s = time_to_clock(time)
+                    if randomise.clock_24hr:
+                        h = h % 24
+                    else:
+                        h = h % 12
+                    string = str(h).zfill(2) + ":" + str(m).zfill(2) + ":" + str(s).zfill(2)
+                    row.label(text = "Time: " + string)
                 
                 else:
                     row = col.row()
@@ -193,8 +221,9 @@ class RandomiserPanelText(bpy.types.Panel):
                             elif randomise.noise_mask_update_method == 'freq':
                                 row.prop(randomise, "noise_mask_period")
                         row = box.row()
-                        row.alignment = 'RIGHT'
+                        #row.alignment = 'RIGHT'
                         row.prop(randomise, "noise_ignore_whitespace")
+                        row.prop(randomise, "noise_ignore_custom")
                             
                             
                     #Noise source for both noise and leader:
@@ -228,6 +257,7 @@ def register():
 
     #Handlers
     bpy.app.handlers.frame_change_post.append(randomise_handler)
+    bpy.app.handlers.render_post.append(randomise_handler)
     
 
 def unregister():
@@ -247,5 +277,7 @@ def unregister():
 
     #Handlers:
     bpy.app.handlers.frame_change_post.remove(randomise_handler)
+    bpy.app.handlers.render_post.remove(randomise_handler)
+
 
 
