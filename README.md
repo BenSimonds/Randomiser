@@ -12,7 +12,7 @@ To intall the add-on, download a zip of this repository from GitHub. You can the
 Usage:
 ----------
 
-Visit the following link for a video about how to use the script:
+Visit the following link for a video about how to use the script (slightly out of date now but basically correct:
 https://www.youtube.com/watch?v=ys7Rh76jUN8
 
 Mesh Objects:
@@ -26,16 +26,22 @@ Text Objects:
 -----------------
 	- Select Text Object and enable randomise from the Object Data tab of the properties editor (text properties).
 	- The Update Method options work the same as before.
-	- Specify a Generate Method.
-	- Based on this you will have different options for the source, choose either one of the procedural options, or for the text block options, specify the name of the text block you want to use in the Text Datablock property.
+	- Specify a Generate Method, you can choose from the following:
+		- Counting: Generates a number.
+		- Clock: Generates a time readout, either as hh:mm:ss or hh:mm.
+		- Scrolling Text: Generates a ticker-tape readout based on a text datablock.
+		- Typwriter: Generates text progressively, like a typewriter, based on a text datablock.
+		- Pick Random: Picks a random character or line from various kinds of text sources.
+		- Pick Ordered: Cycles through characters or lines from various kinds of text sources.
+	- Based on the Generate method you choose you will be presented with some further options. Some methods require you specify a source for the text to be generated from, which may be either a text datablock or a pre-defined set of characters (binary/decimal digits, letters).
 
 Adding Noise to Text:
 -----------------------------
-	- Specify a Noise Method, Mask or Random.
+	- Specify a Noise Method: Mask or Random.
 	- For Mask, provide a comma delimited list of indices (positions) in the string to replace with noise.
 	- For Random, specify a threshold for the proportion of indices to be replaced with noise.
-	- Specify a source for the noise. This can be either a text block or one of the procedural options as before.
-	- Other options such as Update Noise Independently let you specify how the noise positions are selected and how they are updated. 	- The Ignore Whitespace option prevents indices being replaced if the character is a space or new line.
+	- Specify a source for the noise. This can be either a text block or one of the pre-set options as before.
+	- Other options let you specify how the noise positions are selected and how they are updated. 	- The Ignore Whitespace option prevents indices being replaced if the character is a space or new line. You can add custom characters to ignore when generating noise by adding them to the Ignore Custom property.
 
 -------
 Tips:
