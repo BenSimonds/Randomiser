@@ -21,8 +21,8 @@
 bl_info = {
     "name": "Randomiser",
     "author": "Ben Simonds",
-    "version": (0, 3),
-    "blender": (2, 7, 0),
+    "version": (0, 4),
+    "blender": (2, 80, 0),
     "location": "Properties > Object Data > Randomise",
     "description": "Tools for randomising and animating text data (and some limited object data). Website: http://bensimonds.com/2014/04/02/randomiser-add-on/",
     #"warning": "",
@@ -32,12 +32,12 @@ bl_info = {
     }
 
 import bpy
-from .Randomiser_addon import *
+from Randomiser.Randomiser_addon import *
 
 
 # Randomiser UI:
 
-class RandomiserPanelObject(bpy.types.Panel):
+class RANDOMISER_PT_panel_object(bpy.types.Panel):
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
@@ -70,13 +70,13 @@ class RandomiserPanelObject(bpy.types.Panel):
             row = box.row()
             row.prop(randomise, "generate_method")
             row = box.row()
-            row.prop(randomise, "source_group")
+            row.prop(randomise, "source_collection")
             if randomise.generate_method == 'random':
                 row = box.row()
                 row.alignment = 'RIGHT'
                 row.prop(randomise, "no_repeats")    
 
-class RandomiserPanelText(bpy.types.Panel):
+class RANDOMISER_PT_panel_text(bpy.types.Panel):
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "data"
@@ -252,8 +252,8 @@ def register():
     bpy.utils.register_class(RandomiseCopySeed)
 
     #UI:
-    bpy.utils.register_class(RandomiserPanelObject)
-    bpy.utils.register_class(RandomiserPanelText)
+    bpy.utils.register_class(RANDOMISER_PT_panel_object)
+    bpy.utils.register_class(RANDOMISER_PT_panel_text)
 
     #Handlers
     bpy.app.handlers.frame_change_post.append(randomise_handler)
@@ -272,8 +272,8 @@ def unregister():
     bpy.utils.unregister_class(RandomiseCopySeed)
 
     #UI:
-    bpy.utils.unregister_class(RandomiserPanelObject)
-    bpy.utils.unregister_class(RandomiserPanelText)
+    bpy.utils.unregister_class(RANDOMISER_PT_panel_object)
+    bpy.utils.unregister_class(RANDOMISER_PT_panel_text)
 
     #Handlers:
     bpy.app.handlers.frame_change_post.remove(randomise_handler)
