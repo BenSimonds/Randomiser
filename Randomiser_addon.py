@@ -17,9 +17,12 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 
+import logging
 import bpy, mathutils, random, operator, string #locale no longer needed!
 from random import Random
 from bpy.app.handlers import persistent
+
+log = logging.getLogger(__name__)
 
 ### Properties Classes:
 
@@ -215,7 +218,7 @@ def custom_rand(data, method, noisemode, shift, frame, *args):
     #   *args: required args for the method chosen, given as a list []
     x = Random(get_iter(data, noisemode, shift, frame) + data.randomiser.seed)
     methodtocall = getattr(x,method)
-    #print(args)
+    log.debug(args)
     result = methodtocall(*args)
     return result
 
@@ -251,13 +254,13 @@ class RandomiseSpreadSeeds(bpy.types.Operator):
                     try:
                         ob.data.randomiser.seed = count
                     except AttributeError:
-                        print("Couldn't find a seed value for object: " + ob.name)
+                        log.error("Couldn't find a seed value for object: %s", ob.name)
                         pass
             else:
                 try:
                     ob.randomiser.seed = count
                 except AttributeError:
-                    print("Couldn't find a seed value for object: " + ob.name)
+                    log.error("Couldn't find a seed value for object: %s", ob.name)
                     pass
             count += 1000
         return {'FINISHED'}
@@ -282,13 +285,15 @@ class RandomiseCopySettings(bpy.types.Operator):
                     try:
                         ob.data.randomiser.seed = active.data.randomiser.seed
                     except AttributeError:
-                        print("Couldn't find a seed value for object: " + ob.name +  " or: " + active.name)
+                        log.error("Couldn't find a seed value for object: %s or: %s",
+                                  ob.name, active.name)
                         pass
             else:
                 try:
                     ob.randomiser.seed = active.randomiser.seed
                 except AttributeError:
-                    ("Couldn't find a seed value for object: " + ob.name  + " or: " + active.name)
+                    log.error("Couldn't find a seed value for object: %s or %s",
+                              ob.name, active.name)
                     pass
         return {'FINISHED'}
 
@@ -315,13 +320,15 @@ class RandomiseCopySeed(bpy.types.Operator):
                     try:
                         ob.data.randomiser.seed = active.data.randomiser.seed
                     except AttributeError:
-                        print("Couldn't find a seed value for object: " + ob.name +  " or: " + active.name)
+                        log.info("Couldn't find a seed value for object: %s or: %s",
+                                 ob.name, active.name)
                         pass
             else:
                 try:
                     ob.randomiser.seed = active.randomiser.seed
                 except AttributeError:
-                    ("Couldn't find a seed value for object: " + ob.name  + " or: " + active.name)
+                    log.info("Couldn't find a seed value for object: %s or %s",
+                             ob.name, active.name)
                     pass
         return {'FINISHED'}
 
@@ -338,11 +345,12 @@ class RandomiseObjectData (bpy.types.Operator):
         collection = bpy.data.collections[collection_name]
 
         #Get data source and do sanity check:
+        log.debug("Source collection name give is: " + collection_name)
         data_source = [bpy.data.objects[name] for name in sorted(collection.objects.keys()) if
         # Sorted and cleaned list of objects in source collection
         bpy.data.objects[name].type == object.type]
         if len(data_source) == 0:
-            print("Data source list is empty. Skipping.")
+            log.warning("Data source list is empty. Skipping.")
             return
         else:
             if generate_method == 'ordered':
@@ -375,7 +383,7 @@ class RandomiseObjectData (bpy.types.Operator):
         try:
             object = bpy.data.objects[self.object_string]
         except TypeError:
-            print("Couldnt find object :" + self.object_string)
+            log.error("Couldnt find object: %s", self.object_string)
         self.randomise_data(object)
         return {'FINISHED'}
 
@@ -459,7 +467,7 @@ class RandomiseTextData (bpy.types.Operator):
                 return text_data
 
             else:
-                print("Hmm, something should have returned by now, return None so as to give you a useful error...")
+                log.warning("Hmm, something should have returned by now, return None so as to give you a useful error...")
                 return None             
 
 
@@ -566,10 +574,10 @@ class RandomiseTextData (bpy.types.Operator):
                 text_block = None
         except KeyError:
             if randomise.textdata == "":
-                print("ERROR: No name given for text block.")
+                log.error("ERROR: No name given for text block.")
             else:
-                print("ERROR: Cannot find text block with name: " + randomise.textdata)
-            print("Tip: The Text Block should contain the name of a text block in the Text Editor, NOT a text object.")    
+                log.error("ERROR: Cannot find text block with name: " + randomise.textdata)
+            log.info("Tip: The Text Block should contain the name of a text block in the Text Editor, NOT a text object.")
             text_block = None
 
         # First get the source text from which to generate new string from:
@@ -693,8 +701,10 @@ def randomise_handler(dummy):
                 try:
                     if object.randomiser.source_collection in bpy.data.collections.keys():
                         to_randomise.append((object, current_frame + subframe))
-                except (KeyError, AttributeError): #Key error for key not found. Attr Error for key not given.
-                    print("ERROR:Group not found for object to pick random data from.")
+                except (KeyError, AttributeError):
+                    # Key error for key not found. Attr Error for key not given.
+                    log.error("Collection %s not found for object to pick random data from.",
+                              object.randomiser.source_collection)
                     pass
         except AttributeError:
             pass
@@ -734,7 +744,8 @@ def randomise_handler(dummy):
                                 if object.randomiser.source_collection in bpy.data.collections.keys():
                                     to_randomise.append((object, frame_scene))
                             except (KeyError, AttributeError): #Key error for key not found. Attr Error for key not given.
-                                print("ERROR:Group not found for object to pick random data from.")
+                                log.error("Collection not found for object to pick random data from.",
+                                          object.randomiser.source_collection)
                                 pass
                     except AttributeError:
                         pass

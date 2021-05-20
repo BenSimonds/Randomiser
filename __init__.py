@@ -16,7 +16,11 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 # ***** END GPL LICENCE BLOCK *****
-
+import logging
+log = logging.getLogger(__name__)
+log.setLevel(logging.WARNING)
+# log.setLevel(logging.DEBUG)
+log.debug('Initiating')
 
 bl_info = {
     "name": "Randomiser",
@@ -239,6 +243,7 @@ class RANDOMISER_PT_panel_text(bpy.types.Panel):
 
 #Registration:
 def register():
+    log.debug('register')
     #Properties:
     bpy.utils.register_class(RandomiserObjectProps)
     bpy.utils.register_class(RandomiserTextProps)
@@ -261,6 +266,7 @@ def register():
     
 
 def unregister():
+    log.debug('unregister')
     #Properties:
     bpy.utils.unregister_class(RandomiserObjectProps)
     bpy.utils.unregister_class(RandomiserTextProps)
